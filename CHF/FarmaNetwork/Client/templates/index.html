@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Farma Network — Medicine Dashboard</title>
+  <link rel="stylesheet" href="../public/styles/styles.css">
+</head>
+<body>
+
+  <h1>Farma Network — Medicine Management</h1>
+
+  <div class="card">
+    <h2>Create Medicine</h2>
+    <form id="createForm">
+      <input type="text" id="medicineId" placeholder="Medicine ID" required>
+      <input type="text" id="name" placeholder="Name" required>
+      <input type="text" id="manufacturer" placeholder="Manufacturer" required>
+      <input type="date" id="mfd" placeholder="Manufacturing Date" required>
+      <input type="date" id="expiry" placeholder="Expiry Date" required>
+      <input type="text" id="price" placeholder="Price" required>
+      <input type="number" id="quantity" placeholder="Quantity" required>
+      <button type="submit">Create Medicine</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Get Medicine by ID</h2>
+    <input type="text" id="searchId" placeholder="Enter Medicine ID">
+    <button onclick="getMedicine()">Fetch</button>
+  </div>
+
+  <div class="card">
+    <h2>Get All Medicines</h2>
+    <button onclick="getAllMedicines()">Fetch All</button>
+  </div>
+
+  <pre id="result"></pre>
+
+  <script>
+   document.getElementById("createForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const data = {
+    medicineId: document.getElementById("medicineId").value,
+    name: document.getElementById("name").value,
+    manufacturer: document.getElementById("manufacturer").value,
+    mfd: document.getElementById("mfd").value,
+    expiry: document.getElementById("expiry").value,
+    price: document.getElementById("price").value,
+    quantity: document.getElementById("quantity").value
+  };
+
+  fetch("/api/medicine", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  })
+  .then(res => {
+    if (!res.ok) {
+      throw new Error("Failed to create medicine");
+    }
+    return res.json();
+  })
+  .then(response => {
+    document.getElementById("result").textContent = JSON.stringify(response, null, 2);
+
+    
+    document.getElementById("createForm").reset();
+  })
+  .catch(err => {
+    console.error("Error:", err);
+    document.getElementById("result").textContent = "Failed to create medicine. Check console.";
+  });
+});
+
+
+function getMedicine() {
+  const id = document.getElementById("searchId").value;
+  fetch("/api/medicine/" + id)
+    .then(res => res.json())
+    .then(data => {
+      const resultDiv = document.getElementById("result");
+
+      if (!data.data) {
+        resultDiv.innerHTML = `<p style="color: red;">Medicine not found!</p>`;
+        return;
+      }
+
+      let medicineData;
+      try {
+        medicineData = JSON.parse(data.data);
+      } catch (e) {
+        medicineData = data.data;
+      }
+
+      console.log("Parsed medicine data:", medicineData);
+
+      // Now match the JSON keys exactly as per Go struct
+      resultDiv.innerHTML = `
+        <div class="medicine-card">
+          <h3>Medicine Details</h3>
+          
+           <p><strong>Medicine ID:</strong> ${medicineData.medicineId}</p>
+          <p><strong>Name:</strong> ${medicineData.name}</p>
+          <p><strong>Manufacturer:</strong> ${medicineData.manufacturer}</p>
+          <p><strong>Manufacture Date:</strong> ${medicineData.mfd}</p>
+          <p><strong>Expiry Date:</strong> ${medicineData.expiry}</p>
+          <p><strong>Price:</strong> ₹${medicineData.price}</p>
+          <p><strong>Quantity:</strong> ${medicineData.quantity}</p>
+          <p><strong>Status:</strong> ${medicineData.status}</p>
+        </div>
+      `;
+    })
+    .catch(err => {
+      console.error("Error:", err);
+      document.getElementById("result").innerHTML = `<p style="color:red;">Failed to fetch medicine</p>`;
+    });
+}
+
+
+
+function getAllMedicines() {
+  fetch("/api/medicines")
+    .then(res => res.json())
+    .then(data => {
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = ""; // Clear previous content
+
+      // Parse if needed
+      let medicineList = data.data;
+      if (typeof medicineList === "string") {
+        medicineList = JSON.parse(medicineList);
+      }
+
+      // If no medicines found
+      if (!medicineList || medicineList.length === 0) {
+        resultDiv.innerHTML = `<p style="color: red;">No medicines found!</p>`;
+        return;
+      }
+
+      // Loop through medicines and create card for each
+      medicineList.forEach(medicine => {
+        const card = document.createElement("div");
+        card.className = "medicine-card";
+        card.innerHTML = `
+          <h3>Medicine Details</h3>
+          <p><strong>Medicine ID:</strong> ${medicine.medicineId}</p>
+          <p><strong>Name:</strong> ${medicine.name}</p>
+          <p><strong>Manufacturer:</strong> ${medicine.manufacturer}</p>
+          <p><strong>Manufacture Date:</strong> ${medicine.mfd}</p>
+          <p><strong>Expiry Date:</strong> ${medicine.expiry}</p>
+          <p><strong>Price:</strong> ₹${medicine.price}</p>
+          <p><strong>Quantity:</strong> ${medicine.quantity}</p>
+          <p><strong>Status:</strong> ${medicine.status}</p>
+        `;
+        resultDiv.appendChild(card);
+      });
+    })
+    .catch(err => {
+      console.error("Error:", err);
+      document.getElementById("result").innerHTML = `<p style="color:red;">Failed to fetch medicines</p>`;
+    });
+}
+
+  </script>
+
+</body>
+</html>
